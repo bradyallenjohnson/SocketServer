@@ -8,4 +8,11 @@ sourceFiles = [
 ]
 
 env.Append(CPPPATH = '#.')
-env.Library(target = 'socketServer', source = sourceFiles)
+libTarget = env.Library(target = 'socketServer', source = sourceFiles)
+env.Default(libTarget)
+
+exampleEnv = env.Clone()
+clpPath = '../CommandLineParser'
+exampleEnv.Append(CPPPATH = [clpPath, '#'], LIBPATH = [clpPath, '#'], LIBS = ['CmdLineParser', 'socketServer'])
+exampleTarget = exampleEnv.Program(target = 'example', source = ['EchoTcpServerHandler.cpp', 'exampleMain.cpp'])
+exampleEnv.Alias('example', exampleTarget)
