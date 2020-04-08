@@ -3,8 +3,9 @@
 #define SOCKET_SERVER_H
 
 #include <list>
+#include <string>
 
-#include <sys/types.h> 
+#include <sys/types.h>
 #include <netinet/in.h>
 #include <time.h>
 
@@ -21,7 +22,10 @@ class SocketServer
 {
   public:
     SocketServer();
+    // uses INADDR_ANY for local IP
     SocketServer(int listenPort, int timeout_millis = 0);
+    // connects to a specific local IP
+    SocketServer(const string &serverAddress, int listenPort, bool isIpv6, int timeout_millis = 0);
     virtual ~SocketServer();
 
     class SocketServerStatistics
@@ -55,6 +59,7 @@ class SocketServer
     virtual void run(int numMessagesToRead=0);
     virtual inline void stop() { runServer_ = false; }
 
+    const static string ANY_IP_STR;
     const static int MAX_MESSAGE_LENGTH;
 
   protected:
@@ -69,6 +74,7 @@ class SocketServer
 
     ServerHandler *handler_;
     int port_;
+    string serverAddressStr_;
     int sockListenFd_;
     typedef list<int> ClientSockFdListType;
     ClientSockFdListType clientSockFdList_; // used by TCP
@@ -81,9 +87,10 @@ class SocketServer
     fd_set allSocketFdWriteSet_;
     fd_set allSocketFdErrorSet_;
 
-    struct sockaddr_in serverAddress_;
-    struct sockaddr_in clientAddress_;
+    SocketAddrIn serverAddress_;
+    SocketAddrIn clientAddress_;
     socklen_t clientAddrLen_;
+    bool isIpv6_;
 
     bool isDebug_;
     int timeout_sec_;

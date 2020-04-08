@@ -6,6 +6,8 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 
+#include "SocketAddrIn.h"
+
 //
 // Abstract base class ServerHandler
 // handles SocketServer incoming messages
@@ -39,13 +41,13 @@ public:
   virtual void handleMessage(int clientKey,
                              char *msg,
                              int msgLength,
-                             struct sockaddr_in *clientAddr,
+                             const SocketAddrIn &clientAddr,
                              ServerHandler::ServerMessage *responseMsg = 0) = 0;
   virtual void handleTimeout() = 0;
 
   // Called to accept connections/disconnects, default behavior is provided
   // May never be called from some protocols, thus they arent pure virtual
-  virtual void handleConnect(int clientKey, const struct sockaddr_in &clientAddr, socklen_t clientAddrLen) {};
+  virtual void handleConnect(int clientKey, const SocketAddrIn &clientAddr, socklen_t clientAddrLen) {};
   virtual void handleDisconnect(int clientKey) {};
 
   // Called to get a message to write to the client

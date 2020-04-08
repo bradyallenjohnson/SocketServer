@@ -1,4 +1,4 @@
-/* 
+/*
  * File:   EchoTcpServerHandler.h
  * Author: ebrjohn
  *
@@ -22,11 +22,11 @@ public:
 
   virtual ServerHandler::ServerMessage *getMessage(int clientKey);
 
-  virtual void handleConnect(int clientKey, const struct sockaddr_in &clientAddr, socklen_t clientAddrLen);
+  virtual void handleConnect(int clientKey, const SocketAddrIn &clientAddr, socklen_t clientAddrLen);
   virtual void handleMessage(int clientKey,
                              char *requestMsg,
                              int requestMsgLength,
-                             struct sockaddr_in *clientAddr,
+                             const SocketAddrIn &clientAddr,
                              ServerHandler::ServerMessage *responseMsg);
   virtual void handleTimeout();
 

@@ -56,7 +56,7 @@ ServerHandler::ServerMessage *EchoUdpServerHandler::getMessage(int clientKey)
 void EchoUdpServerHandler::handleMessage(int clientKey,
                                          char *requestMsg,
                                          int requestMsgLength,
-                                         struct sockaddr_in *clientAddr,
+                                         const SocketAddrIn &clientAddr,
                                          ServerHandler::ServerMessage *responseMsg)
 {
   if(!responseMsg)

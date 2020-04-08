@@ -1,13 +1,16 @@
 
-#include <iostream>
 #include <algorithm>
+#include <iostream>
+#include <string>
 
 #include <string.h>
+#include <unistd.h>
 
-#include <sys/select.h> 
-#include <sys/types.h> 
-#include <netinet/in.h>
 #include <errno.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <sys/select.h>
+#include <sys/types.h>
 
 #include "SocketServer.h"
 #include "ServerHandler.h"
@@ -15,11 +18,13 @@
 using namespace std;
 
 const int SocketServer::MAX_MESSAGE_LENGTH = 2048;
+const string SocketServer::ANY_IP_STR = "any";
 
 SocketServer::SocketServer() :
   handler_(NULL),
   port_(-1),
   sockListenFd_(-1),
+  isIpv6_(false),
   isDebug_(false),
   timeout_msec_(0),
   tval_(NULL),
@@ -30,7 +35,22 @@ SocketServer::SocketServer() :
 SocketServer::SocketServer(int port, int timeout_millis /*defaults 0*/) :
   handler_(NULL),
   port_(port),
+  serverAddressStr_(ANY_IP_STR),
   sockListenFd_(-1),
+  isIpv6_(false),
+  isDebug_(false),
+  timeout_msec_(timeout_millis),
+  tval_(NULL),
+  runServer_(true)
+{
+}
+
+SocketServer::SocketServer(const string &serverAddress, int port, bool isIpv6, int timeout_millis /*defaults 0*/) :
+  handler_(NULL),
+  port_(port),
+  serverAddressStr_(serverAddress),
+  sockListenFd_(-1),
+  isIpv6_(isIpv6),
   isDebug_(false),
   timeout_msec_(timeout_millis),
   tval_(NULL),
@@ -81,15 +101,51 @@ void SocketServer::SocketServerStatistics::clear()
 }
 
 bool SocketServer::initialize()
- {
-  // We're always going to use IP
-  memset(&serverAddress_, 0, sizeof(struct sockaddr_in));
-  serverAddress_.sin_family = AF_INET;
-  serverAddress_.sin_addr.s_addr = INADDR_ANY;
-  serverAddress_.sin_port = htons(port_);
+{
+  struct hostent *localHostEnt(NULL);
+  bool useAnyIp(true);
+  if (!serverAddressStr_.empty() && serverAddressStr_ != ANY_IP_STR)
+  {
+    useAnyIp = false;
+    localHostEnt = gethostbyname2(serverAddressStr_.c_str(), (isIpv6_ ? AF_INET6 : AF_INET));
+    if(localHostEnt == NULL)
+    {
+      cerr << "Invalid serverAddress string: " << serverAddressStr_ << endl;
+      return false;
+    }
+  }
+
+  if (isIpv6_)
+  {
+    memset(&serverAddress_.socketAddrIn.sockAddrIpv6, 0, sizeof(struct sockaddr_in6));
+    serverAddress_.socketAddrIn.sockAddrIpv6.sin6_family = AF_INET6;
+    serverAddress_.socketAddrIn.sockAddrIpv6.sin6_port = htons(port_);
+    if (useAnyIp)
+    {
+      serverAddress_.socketAddrIn.sockAddrIpv6.sin6_addr = in6addr_any;
+    }
+    else
+    {
+      memcpy(&serverAddress_.socketAddrIn.sockAddrIpv6.sin6_addr, localHostEnt->h_addr, localHostEnt->h_length);
+    }
+  }
+  else
+  {
+    memset(&serverAddress_.socketAddrIn.sockAddrIpv4, 0, sizeof(struct sockaddr_in));
+    serverAddress_.socketAddrIn.sockAddrIpv4.sin_family = AF_INET;
+    serverAddress_.socketAddrIn.sockAddrIpv4.sin_port = htons(port_);
+    if (useAnyIp)
+    {
+        serverAddress_.socketAddrIn.sockAddrIpv4.sin_addr.s_addr = INADDR_ANY;
+    }
+    else
+    {
+      memcpy(&serverAddress_.socketAddrIn.sockAddrIpv4.sin_addr, localHostEnt->h_addr, localHostEnt->h_length);
+    }
+  }
 
   clientAddrLen_ = sizeof(struct sockaddr_in);
-  memset((void *) &clientAddress_, 0, sizeof(struct sockaddr_in));
+  memset((void *) &clientAddress_.socketAddrIn.sockAddrIpv6, 0, sizeof(struct sockaddr_in6));
 
   if(timeout_msec_ > 0)
   {
@@ -254,7 +310,7 @@ void SocketServer::run(int numMessagesToRead /*default 0*/)
         else if(numBytesRead > 0)
         {
           ++stats_.numReads;
-          handler_->handleMessage(sockFd, msgBuffer, numBytesRead, &clientAddress_);
+          handler_->handleMessage(sockFd, msgBuffer, numBytesRead, clientAddress_);
           // Set the socket for writing if the handler has a response ready
           if(handler_->hasResponse(sockFd))
           {

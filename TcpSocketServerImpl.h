@@ -12,6 +12,7 @@ class TcpSocketServerImpl : public SocketServer
   public:
     TcpSocketServerImpl();
     TcpSocketServerImpl(int listenPort, int timeout_millis = 0);
+    TcpSocketServerImpl(const string &serverAddress, int listenPort, bool isIpv6, int timeout_millis = 0);
 
   protected:
     virtual bool initializeSpecific();

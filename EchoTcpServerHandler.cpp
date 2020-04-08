@@ -1,7 +1,7 @@
-/* 
+/*
  * File:   EchoTcpServerHandler.cpp
  * Author: ebrjohn
- * 
+ *
  * Created on July 11, 2012, 4:16 PM
  */
 
@@ -52,7 +52,7 @@ ServerHandler::ServerMessage *EchoTcpServerHandler::getMessage(int clientKey)
 }
 
 // virtual
-void EchoTcpServerHandler::handleConnect(int clientKey, const struct sockaddr_in &clientAddr, socklen_t clientAddrLen)
+void EchoTcpServerHandler::handleConnect(int clientKey, const SocketAddrIn &clientAddr, socklen_t clientAddrLen)
 {
   ServerHandler::ServerMessage *responseMsg(getMessage(clientKey));
   if(!responseMsg)
@@ -67,7 +67,7 @@ void EchoTcpServerHandler::handleConnect(int clientKey, const struct sockaddr_in
 void EchoTcpServerHandler::handleMessage(int clientKey,
                                          char *requestMsg,
                                          int requestMsgLength,
-                                         struct sockaddr_in *clientAddr,
+                                         const SocketAddrIn &clientAddr,
                                          ServerHandler::ServerMessage *responseMsg)
 {
   if(!responseMsg)

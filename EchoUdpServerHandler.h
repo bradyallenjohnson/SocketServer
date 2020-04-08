@@ -25,7 +25,7 @@ public:
   virtual void handleMessage(int clientKey,
                              char *requestMsg,
                              int requestMsgLength,
-                             struct sockaddr_in *clientAddr,
+                             const SocketAddrIn &clientAddr,
                              ServerHandler::ServerMessage *responseMsg);
   virtual void handleTimeout();
 

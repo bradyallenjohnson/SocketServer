@@ -3,6 +3,7 @@
 #include <map>
 
 #include <errno.h>
+#include <unistd.h>
 #include <sys/socket.h>
 
 #include "SocketServer.h"
@@ -19,17 +20,25 @@ TcpSocketServerImpl::TcpSocketServerImpl(int port, int timeout_millis /*default 
 {
 }
 
+TcpSocketServerImpl::TcpSocketServerImpl(const string &serverAddress, int listenPort, bool isIpv6, int timeout_millis /* defaults 0 */) :
+        SocketServer(serverAddress, listenPort, isIpv6, timeout_millis)
+{
+}
+
 // virtual
 bool TcpSocketServerImpl::initializeSpecific()
 {
-  sockListenFd_ = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  sockListenFd_ = socket((isIpv6_ ? AF_INET6 : AF_INET), SOCK_STREAM, IPPROTO_TCP);
   if(sockListenFd_ < 0)
   {
     cerr << "Error initializing TCP socket, errno: " << endl;
     return false;
   }
 
-  if(bind(sockListenFd_, (struct sockaddr *) &serverAddress_, sizeof(struct sockaddr_in)) < 0)
+  if(bind(sockListenFd_,
+          (isIpv6_ ? (struct sockaddr *) &serverAddress_.socketAddrIn.sockAddrIpv6 :
+                     (struct sockaddr *) &serverAddress_.socketAddrIn.sockAddrIpv4),
+          (isIpv6_ ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in))) < 0)
   {
     cerr << "Error binding socket, errno: " << errno << endl;
     return false;
@@ -51,7 +60,10 @@ bool TcpSocketServerImpl::initializeSpecific()
 
 void TcpSocketServerImpl::acceptConnection()
 {
-  int clientFd(accept(sockListenFd_, (sockaddr*) &clientAddress_, (socklen_t*) &clientAddrLen_));
+  int clientFd(accept(sockListenFd_,
+          (isIpv6_ ? (sockaddr*) &clientAddress_.socketAddrIn.sockAddrIpv6 :
+                     (sockaddr*) &clientAddress_.socketAddrIn.sockAddrIpv4),
+          (socklen_t*) &clientAddrLen_));
   clientSockFdList_.push_back(clientFd);
   ++stats_.numConnects;
 

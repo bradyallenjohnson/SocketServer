@@ -1,4 +1,4 @@
-/* 
+/*
  * File:   exampleMain.cpp
  * Author: Brady Johnson
  *
@@ -11,15 +11,18 @@
 #include <string.h> // memset
 #include <signal.h>
 
-#include <SocketServer.h>
-#include <TcpSocketServerImpl.h>
-#include <EchoTcpServerHandler.h>
 #include <CmdLineParser.h>
+
+#include "SocketServer.h"
+#include "TcpSocketServerImpl.h"
+#include "EchoTcpServerHandler.h"
 
 using namespace std;
 
 const string ARG_LISTEN_PORT = "-p";
 const string ARG_VERBOSE     = "-v";
+const string ARG_IPV6        = "-ipv6";
+const string ARG_SRC_IP      = "-srcip";
 
 // Global SocketServer pointer to be used in the application signal handler
 SocketServer *SOCKET_SERVER = NULL;
@@ -27,6 +30,8 @@ SocketServer *SOCKET_SERVER = NULL;
 struct ConfigInput
 {
   uint16_t  listenPort;
+  string    srcIp;
+  bool      isIpv6;
   bool      isVerbose;
   ConfigInput() : listenPort(3868), isVerbose(false) {}
 };
@@ -40,6 +45,15 @@ void loadCmdLine(CmdLineParser &clp)
   clp.addCmdLineOption(new CmdLineOptionInt(ARG_LISTEN_PORT,
                                             string("TCP port to listen on"),
                                             3868));
+
+  clp.addCmdLineOption(new CmdLineOptionFlag(ARG_IPV6,
+                                             string("Use IPv6, default is Ipv4"),
+                                             false));
+
+  clp.addCmdLineOption(new CmdLineOptionStr(ARG_SRC_IP,
+                                            string("Local IP to listen on"),
+                                            SocketServer::ANY_IP_STR));
+
      // Verbosity
   clp.addCmdLineOption(new CmdLineOptionFlag(ARG_VERBOSE,
                                              string("Turn on verbosity"),
@@ -55,7 +69,9 @@ bool parseCommandLine(int argc, char **argv, CmdLineParser &clp, ConfigInput &co
   }
 
   config.listenPort = ((CmdLineOptionInt*)  clp.getCmdLineOption(ARG_LISTEN_PORT))->getValue();
+  config.srcIp =      ((CmdLineOptionStr*)  clp.getCmdLineOption(ARG_SRC_IP))->getValue();
   config.isVerbose =  ((CmdLineOptionFlag*) clp.getCmdLineOption(ARG_VERBOSE))->getValue();
+  config.isIpv6 =     ((CmdLineOptionFlag*) clp.getCmdLineOption(ARG_IPV6))->getValue();
 
   return true;
 }
@@ -124,7 +140,7 @@ int main(int argc, char** argv)
   ServerHandler *handler(NULL);
   try
   {
-    server = new TcpSocketServerImpl(input.listenPort);
+    server = new TcpSocketServerImpl(input.srcIp, input.listenPort, input.isIpv6);
     handler = new EchoTcpServerHandler();
     server->setHandler(handler);
     server->setDebug(input.isVerbose);
